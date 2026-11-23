@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniMind 8GB 实战 · 交互式动画</title>
+<style>
+  :root{
+    --bg:#0d1117; --surface:#161b22; --surface2:#1c2230; --border:#30363d;
+    --text:#e6edf3; --muted:#8b949e; --cyan:#39c5cf; --orange:#f0883e;
+    --green:#3fb950; --red:#f85149; --purple:#a371f7; --blue:#58a6ff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.7;padding-bottom:60px}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px}
+  header{padding:44px 0 28px;text-align:center;border-bottom:1px solid var(--border)}
+  header h1{font-size:27px;font-weight:600;margin-bottom:10px}
+  header h1 span{color:var(--cyan)}
+  header p{color:var(--muted);font-size:14px;max-width:620px;margin:0 auto}
+  .badges{margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .badge{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 13px;font-size:12px;color:var(--muted)}
+  .badge b{color:var(--cyan);font-weight:600}
+  .tabs{display:flex;gap:10px;justify-content:center;margin:28px 0 20px;flex-wrap:wrap}
+  .tab{background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:11px 20px;cursor:pointer;font-size:14px;transition:.2s}
+  .tab:hover{border-color:var(--cyan)}
+  .tab.active{background:var(--surface2);border-color:var(--cyan);color:var(--text)}
+  .tab .num{color:var(--cyan);font-weight:600;margin-right:6px}
+  .progress{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .progress .label{font-size:12px;color:var(--muted);min-width:120px}
+  .dots{display:flex;gap:6px;flex:1}
+  .dot{height:4px;flex:1;background:var(--border);border-radius:4px;transition:.3s}
+  .dot.on{background:var(--cyan)}
+  .stage{background:var(--surface);border:1px solid var(--border);border-radius:14px;min-height:430px;padding:30px 34px;position:relative;overflow:hidden}
+  .frame{display:none;animation:fade .45s ease}
+  .frame.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .frame h2{font-size:20px;margin-bottom:6px;font-weight:600}
+  .frame .kicker{color:var(--cyan);font-size:12px;font-weight:600;letter-spacing:1px;margin-bottom:8px}
+  .frame .narr{color:var(--muted);font-size:14px;margin:16px 0;line-height:1.8;border-left:2px solid var(--cyan);padding-left:14px}
+  .frame .narr b{color:var(--text);font-weight:600}
+  .controls{display:flex;gap:10px;margin-top:18px;align-items:center;flex-wrap:wrap}
+  button.act{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:10px 18px;cursor:pointer;font-size:14px;transition:.2s}
+  button.act:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}
+  button.act:disabled{opacity:.35;cursor:not-allowed}
+  button.primary{background:var(--cyan);color:#08161a;border-color:var(--cyan);font-weight:600}
+  button.primary:hover{background:#5dd6de;color:#08161a}
+  .hint{margin-left:auto;font-size:12px;color:var(--muted)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+  .card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+  .card .lbl{font-size:12px;color:var(--muted)}
+  .card .val{font-size:23px;font-weight:600;margin-top:4px}
+  .cyan{color:var(--cyan)}.orange{color:var(--orange)}.green{color:var(--green)}.red{color:var(--red)}.purple{color:var(--purple)}.blue{color:var(--blue)}
+  .code{background:#0a0e14;border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:Consolas,Monaco,monospace;font-size:12.5px;color:#c9d1d9;line-height:1.75;margin:14px 0;overflow-x:auto}
+  .code .err{color:var(--red)}.code .ok{color:var(--green)}.code .hl{color:var(--cyan)}
+  .flow{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0;align-items:center}
+  .node{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;font-size:13px;transition:.4s}
+  .node.lit{border-color:var(--cyan);background:rgba(57,197,207,.1);color:var(--cyan)}
+  .arrow{color:var(--muted);font-size:13px}
+  .quote{font-size:19px;font-weight:600;text-align:center;padding:34px 20px;color:var(--text);line-height:1.7}
+  .quote span{color:var(--cyan)}
+  .linkbox{display:inline-block;background:var(--surface2);border:1px solid var(--cyan);border-radius:10px;padding:12px 20px;margin-top:16px;font-size:13px}
+  .linkbox a{color:var(--cyan);text-decoration:none}
+  .cmp{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+  .cmp th,.cmp td{border:1px solid var(--border);padding:10px 12px;text-align:left}
+  .cmp th{background:var(--surface2);color:var(--muted);font-weight:600}
+  .cmp td.good{color:var(--green)}
+  .cmp td.bad{color:var(--red)}
+  .reward-chart{margin:18px 0}
+  .step-tag{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;color:var(--muted);margin-bottom:8px}
+  .tl{display:flex;gap:0;margin:20px 0;flex-wrap:wrap}
+  .tl-item{flex:1;min-width:95px;text-align:center;position:relative}
+  .tl-item .d{width:11px;height:11px;border-radius:50%;background:var(--cyan);margin:0 auto 8px}
+  .tl-item .t{font-size:11px;color:var(--cyan)}
+  .tl-item .x{font-size:11px;color:var(--muted);margin-top:3px}
+  .tl-item::after{content:"";position:absolute;top:5px;left:50%;width:100%;height:1px;background:var(--border);z-index:-1}
+  .tl-item:last-child::after{display:none}
+  .pill{display:inline-block;padding:4px 11px;border-radius:14px;font-size:12px;margin:3px}
+  .pill.g{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.4)}
+  .pill.r{background:rgba(248,81,73,.15);color:var(--red);border:1px solid rgba(248,81,73,.4)}
+  .pill.o{background:rgba(240,136,62,.15);color:var(--orange);border:1px solid rgba(240,136,62,.4)}
+  footer{text-align:center;margin-top:40px;padding-top:24px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}
+  footer a{color:var(--cyan);text-decoration:none}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}.stage{padding:22px 18px;min-height:480px}.frame h2{font-size:17px}.hint{display:none}header h1{font-size:21px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>MiniMind <span>8GB</span> 实战 · 交互式动画</h1>
+  <p>在一张 RTX 4060 Laptop 8GB 显卡上，从零跑通 64M 小语言模型全流程。点击按钮，一帧一帧看完整故事。</p>
+  <div class="badges">
+    <span class="badge">GPU <b>RTX 4060 Laptop 8GB</b></span>
+    <span class="badge">模型 <b>64M</b></span>
+    <span class="badge">GRPO <b>19,502 步</b></span>
+    <span class="badge">Reward <b>-3.48 → +2.38</b></span>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-v="0" onclick="switchVideo(0)"><span class="num">01</span>项目介绍片</div>
+  <div class="tab" data-v="1" onclick="switchVideo(1)"><span class="num">02</span>实战过程片</div>
+</div>
+
+<div class="progress">
+  <span class="label" id="progressLabel">第 1 / 6 帧</span>
+  <div class="dots" id="dots"></div>
+</div>
+
+<div class="stage" id="stage"></div>
+
+<div class="controls">
+  <button class="act" id="prev" onclick="step(-1)">← 上一步</button>
+  <button class="act primary" id="next" onclick="step(1)">点我推进 →</button>
+  <button class="act" id="auto" onclick="toggleAuto()">自动播放</button>
+  <span class="hint">也可用键盘 ← → 控制</span>
+</div>
+
+<footer>
+  基于 <a href="https://github.com/jingyaogong/minimind" target="_blank">jingyaogong/minimind</a> 官方项目的轻量化实践 · 源码与原始记录见
+  <a href="https://github.com/c11c111/minimind-8gb-rtx4060" target="_blank">GitHub 仓库</a>
+</footer>
+</div>
+
+<script>
+const VIDEOS = [
+  {
+    name:"项目介绍片", total:6,
+    frames:[
+      {kicker:"开场 · 一个问题",title:"2 小时、3 块钱，但那是 3090",body:`
+        <div class="grid2">
+          <div class="card"><div class="lbl">官方默认环境</div><div class="val blue">RTX 3090</div><div class="lbl" style="margin-top:6px">显存 24GB</div></div>
+          <div class="card"><div class="lbl">我的设备</div><div class="val orange">RTX 4060 Laptop</div><div class="lbl" style="margin-top:6px">显存 8GB · 只有五分之一</div></div>
+        </div>
+        <div class="quote" style="padding:20px">如果只有 <span>8GB</span> 的游戏本显卡，<br>还能把整条链路跑通吗？</div>`,
+       narr:"官方说 2 小时、3 块钱就能训练语言模型。但那是 3090，24GB 显存。如果我手上只有一张 8GB 的游戏本显卡呢？"},
+      {kicker:"项目定位",title:"基于官方 MiniMind 的轻量化复刻实践",body:`
+        <div class="card">
+          <div class="lbl" style="margin-bottom:8px">核心定位</div>
+          <div style="font-size:14px;line-height:1.9">不改模型结构、不缩减数据规模，只做 <span class="cyan">8GB 环境下的适配参数 + 显存策略 + 实测记录</span>。<br>官方默认 3090 24GB，本项目在 4060 Laptop 8GB 上跑通全部核心阶段。</div>
+        </div>
+        <div class="grid2" style="margin-top:14px">
+          <div class="card"><div class="lbl">模型规模</div><div class="val cyan">64M 参数</div></div>
+          <div class="card"><div class="lbl">架构</div><div class="val" style="font-size:16px">Decoder-Only</div></div>
+        </div>`,
+       narr:"这就是我的项目——基于 MiniMind 官方项目的轻量化复刻实践。不改模型结构、不缩减数据，就是在 8GB 上把全流程跑通。"},
+      {kicker:"做了什么",title:"六个阶段，一个不落",body:`
+        <div class="flow">
+          <span class="node lit">预训练</span><span class="arrow">→</span>
+          <span class="node lit">SFT 微调</span><span class="arrow">→</span>
+          <span class="node lit">LoRA</span><span class="arrow">→</span>
+          <span class="node lit">DPO</span><span class="arrow">→</span>
+          <span class="node lit">GRPO</span><span class="arrow">→</span>
+          <span class="node lit">网页部署</span>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="lbl">完整链路</div>
+          <div style="font-size:13px;margin-top:8px;line-height:1.9">预训练（学语言）→ SFT（学对话）→ LoRA（参数高效微调）→ DPO（偏好对齐）→ GRPO/CISPO（强化对齐）→ Streamlit 网页对话服务</div>
+        </div>`,
+       narr:"从预训练、监督微调，到 LoRA 参数高效微调，再到 DPO 偏好对齐、GRPO 强化学习，最后部署成网页对话——六个阶段，一个不落。"},
+      {kicker:"效果",title:"用数字说话",body:`
+        <div class="grid2">
+          <div class="card"><div class="lbl">预训练 loss</div><div class="val cyan">1.7651</div></div>
+          <div class="card"><div class="lbl">SFT loss</div><div class="val cyan">1.7540</div></div>
+          <div class="card"><div class="lbl">LoRA 可训参数</div><div class="val orange">0.393M <span style="font-size:13px">/ 0.6%</span></div></div>
+          <div class="card"><div class="lbl">DPO loss</div><div class="val purple">0.528</div></div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="lbl">GRPO 奖励曲线 · 19,502 步</div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:10px">
+            <span class="val red" style="font-size:19px">-3.48</span>
+            <span style="flex:1;height:3px;background:var(--border);border-radius:3px;position:relative;overflow:hidden"><span style="position:absolute;inset:0;background:linear-gradient(90deg,var(--red),var(--green));border-radius:3px"></span></span>
+            <span class="val green" style="font-size:19px">+2.38</span>
+          </div>
+        </div>`,
+       narr:"结果怎么样？预训练 loss 收敛到 1.77；LoRA 只训练 0.6% 的参数，就让模型改口说「我是 minimind」；最难的是 GRPO，跑了 19,502 步，奖励从负 3.48 涨到正 2.38。"},
+      {kicker:"效果 · A/B 对比",title:"对齐前后的同题对照",body:`
+        <table class="cmp">
+          <tr><th>问题</th><th>SFT（对齐前）</th><th>GRPO（对齐后）</th></tr>
+          <tr><td>写一首关于秋天的诗</td><td class="bad">「用心去感受」重复逾百次，停不下来</td><td class="good">正常收尾，结构完整</td></tr>
+          <tr><td>1+1 等于几，为什么</td><td class="bad">答非所问，扯到动物分类</td><td class="bad">答非所问，扯到数论证明</td></tr>
+        </table>
+        <div class="card"><div class="lbl" style="margin-bottom:6px">结论</div><div style="font-size:14px">GRPO 治好了「话痨」，但没教会数学——这是 <span class="orange">64M 容量的物理天花板</span>，不是训练失败。</div></div>`,
+       narr:"同一首诗，对齐前模型把「用心去感受」重复上百次停不下来，对齐后正常收尾。但 1+1 这种推理题，两个版本都答非所问。"},
+      {kicker:"好处 · 收尾",title:"做这件事的三个好处",body:`
+        <div class="grid2">
+          <div class="card"><div class="lbl">01 学习价值</div><div style="font-size:14px;margin-top:6px">把论文里的术语变成<span class="cyan">亲手跑过的经验</span></div></div>
+          <div class="card"><div class="lbl">02 工程价值</div><div style="font-size:14px;margin-top:6px">学会显存贴边时<span class="cyan">怎么取舍</span></div></div>
+        </div>
+        <div class="card" style="margin-top:14px"><div class="lbl">03 可复现</div><div style="font-size:14px;margin-top:6px">全程真实数据与踩坑记录，别人照着就能跑</div></div>
+        <div class="quote" style="margin-top:20px">RLHF <span>放大已有能力</span>，<span>不注入新知识</span></div>
+        <div style="text-align:center"><div class="linkbox">🔗 <a href="https://github.com/c11c111/minimind-8gb-rtx4060" target="_blank">github.com/c11c111/minimind-8gb-rtx4060</a></div></div>`,
+       narr:"做这件事的好处有三：把术语变成经验、学会显存取舍、留下可复现记录。最后送大家一句话：强化学习能教会模型怎么写，却造不出想什么。"}
+    ]
+  },
+  {
+    name:"实战过程片", total:8,
+    frames:[
+      {kicker:"时间线",title:"四天，五个阶段，无数个坑",body:`
+        <div class="tl">
+          <div class="tl-item"><div class="d"></div><div class="t">11-19</div><div class="x">环境+冒烟</div></div>
+          <div class="tl-item"><div class="d"></div><div class="t">11-20</div><div class="x">预训练+SFT</div></div>
+          <div class="tl-item"><div class="d"></div><div class="t">11-21</div><div class="x">LoRA+DPO</div></div>
+          <div class="tl-item"><div class="d"></div><div class="t">11-22</div><div class="x">GRPO+部署</div></div>
+        </div>
+        <div class="card"><div class="lbl">硬件</div><div style="font-size:14px;margin-top:6px">Windows + Anaconda · RTX 4060 Laptop 8GB · PyTorch 2.5.1+cu121 · CUDA 可用</div></div>`,
+       narr:"这是我在 RTX 4060 Laptop 8GB 上，从零复刻 MiniMind 的全过程。四天，五个阶段，无数个坑。"},
+      {kicker:"坑 #1~2",title:"第一步不是训练，是配环境",body:`
+        <div class="card">
+          <div class="lbl">坑 1 · transformers 版本陷阱</div>
+          <div style="font-size:13px;margin-top:6px">装了 5.x 后，脚本把本地 <code>../model</code> 误判成 HF 仓库 ID。<br><span class="green">解法：降级到 4.57.6 + huggingface-hub 0.34.4</span></div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="lbl">坑 2 · pip 源被污染</div>
+          <div style="font-size:13px;margin-top:6px">全局配置混进 <code>pypi.ngc.nvidia.com</code>，装包各种失败。<br><span class="green">解法：pip install --isolated 绕过全局配置</span></div>
+        </div>
+        <div style="margin-top:14px"><span class="pill o">心得</span><span style="font-size:13px;color:var(--muted)">版本锁死、隔离安装，别追求最新</span></div>`,
+       narr:"最新的 transformers 把本地路径当成了网上仓库，pip 源还被污染。最后锁定 4.57.6、隔离安装，才把地基打牢。"},
+      {kicker:"冒烟测试",title:"先用 5000 行小数据探路",body:`
+        <div class="grid2">
+          <div class="card"><div class="lbl">数据</div><div class="val">5,000 行</div></div>
+          <div class="card"><div class="lbl">batch_size</div><div class="val">4</div></div>
+        </div>
+        <div class="code">step 1250　loss <span class="ok">6.0507</span>　→ 生成 pretrain_768.pth (131MB)</div>
+        <div class="card"><div class="lbl">这一步在验证什么</div><div style="font-size:13px;margin-top:6px">链路通不通、显存够不够、权重存到哪——正式训练前先排除低级错误。</div></div>`,
+       narr:"正式训练前，先用 5000 行小数据冒烟。batch_size 4，loss 从 8 降到 6——链路通了，显存够用。"},
+      {kicker:"预训练 + SFT",title:"两个十几万步的大工程",body:`
+        <div class="grid2">
+          <div class="card"><div class="lbl">预训练 · 127 万条</div><div class="val cyan">158,780 步</div><div class="lbl" style="margin-top:6px">loss → 1.7651 · 约 4h</div></div>
+          <div class="card"><div class="lbl">SFT · 指令数据</div><div class="val purple">226,430 步</div><div class="lbl" style="margin-top:6px">loss → 1.7540 · 约 4h</div></div>
+        </div>
+        <div class="card" style="margin-top:14px"><div class="lbl" style="margin-bottom:6px">第一次发现天花板</div><div style="font-size:13px">问它「1+1 等于几，为什么」，答非所问。<span class="orange">64M 的容量限制第一次露出来。</span></div></div>`,
+       narr:"正式预训练 127 万条，跑了 158,780 步、4 小时，loss 1.7651。接着 SFT，226,430 步，loss 1.7540。但问它一加一为什么，它答非所问。"},
+      {kicker:"LoRA + DPO",title:"参数高效微调与偏好对齐",body:`
+        <div class="card">
+          <div class="lbl">LoRA · 冻结主干，只训旁路</div>
+          <div class="code" style="margin:8px 0">forward: W(x) <span class="cyan">+ B(A(x))</span>　rank=16</div>
+          <div style="font-size:13px">可训参数 <span class="cyan">0.393M / 63.9M = 0.6%</span>，loss 2.10 → 1.35。模型改口说「我是 minimind」。</div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="lbl">DPO · 用好坏回答对对齐</div>
+          <div style="margin:8px 0"><span class="pill g">chosen 好回答</span><span class="pill r">rejected 坏回答</span></div>
+          <div style="font-size:13px">loss 从理论起点 ln2≈0.693 降到 <span class="purple">0.528</span>，学会区分好坏。</div>
+        </div>`,
+       narr:"LoRA 冻结主干、只训旁路，0.393M 参数、占 0.6%，loss 从 2.10 降到 1.35。DPO 用好坏回答对对齐，loss 从 0.693 降到 0.528。"},
+      {kicker:"高潮 · 坑 #7",title:"8GB 显存攻坚：只差 122MB",body:`
+        <div class="code"><span class="err">torch.OutOfMemoryError: CUDA out of memory</span><br>Tried to allocate <span class="err">122.00 MiB</span><br>482.75 MiB is reserved but unallocated</div>
+        <div class="flow">
+          <span class="node lit">① 关进程<br><small style="font-size:11px">无损 · 释放1GB</small></span><span class="arrow">→</span>
+          <span class="node lit">② expandable<br><small style="font-size:11px">无损 · 整理碎片</small></span><span class="arrow">→</span>
+          <span class="node lit">③ gen 4→2<br><small style="font-size:11px">有损 · 死守512</small></span>
+        </div>
+        <div class="card"><div class="lbl" style="margin-bottom:6px">取舍逻辑</div><div style="font-size:13px">组内样本数可以减半，但 <span class="orange">max_gen_len 512 是底线</span>——牺牲长度会退回「半截话模型」。</div></div>`,
+       narr:"最刺激的是 GRPO。把生成长度提到 512 后，连续 8 步在同一个地方 OOM——只差 122MB。三级策略：关浏览器、整理碎片、采样数从 4 降到 2，但死守 512。"},
+      {kicker:"验证",title:"跑通了，也看到了天花板",body:`
+        <div class="code"><span class="ok">Epoch:[1/1](19502/19502)</span><br>Reward: <span class="ok">+2.3799</span>　Avg Response Len: <span class="cyan">265.50</span></div>
+        <div class="card" style="margin-top:12px"><div class="lbl">A/B 验证</div><div style="font-size:13px;margin-top:6px">诗句从「重复逾百次」到<span class="green">正常收尾</span>；但苹果题（5个吃2买3）仍算错，思考链里把「买3个」幻觉成「吃3个」。</div></div>
+        <div style="margin-top:12px"><span class="pill g">行为格式 学会了</span><span class="pill r">逻辑推理 没有</span></div>`,
+       narr:"验证阶段，诗句从重复逾百次变成正常收尾。但苹果题还是算错——思考链学会了格式，内容却是幻觉。"},
+      {kicker:"收尾",title:"最重要的认知",body:`
+        <div class="quote">GRPO 教会模型的是 <span>「怎么写」</span><br>而不是 <span>「想什么」</span></div>
+        <div class="card"><div style="font-size:14px;line-height:1.9">RLHF 的本质是<span class="cyan">放大已有能力，不注入新知识</span>。想突破 64M 的天花板，得换更大底座或做知识蒸馏，不是继续强化学习。</div></div>
+        <div style="text-align:center"><div class="linkbox">🔗 <a href="https://github.com/c11c111/minimind-8gb-rtx4060" target="_blank">项目已开源 · GitHub 仓库</a></div></div>`,
+       narr:"这就是全部过程。RLHF 放大已有能力，不注入新知识。项目开源在 GitHub，链接在下方，欢迎 star。"}
+    ]
+  }
+];
+
+let vi=0, fi=0, autoTimer=null;
+const stage=document.getElementById('stage');
+const dots=document.getElementById('dots');
+
+function render(){
+  const v=VIDEOS[vi];
+  document.getElementById('progressLabel').textContent=`第 ${fi+1} / ${v.total} 帧`;
+  dots.innerHTML='';
+  for(let i=0;i<v.total;i++){
+    const d=document.createElement('div');
+    d.className='dot'+(i===fi?' on':'');
+    d.onclick=()=>{fi=i;stopAuto();render()};
+    d.style.cursor='pointer';
+    dots.appendChild(d);
+  }
+  const f=v.frames[fi];
+  stage.innerHTML=`<div class="frame show">
+    <div class="kicker">${f.kicker}</div>
+    <h2>${f.title}</h2>
+    ${f.body}
+    <div class="narr">🔊 ${f.narr}</div>
+  </div>`;
+  document.getElementById('prev').disabled=(fi===0);
+  document.getElementById('next').textContent=(fi===v.total-1)?'回到开头 ↺':'点我推进 →';
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===vi));
+}
+function step(d){
+  const v=VIDEOS[vi];
+  fi=(fi+d+v.total)%v.total;
+  render();
+}
+function switchVideo(i){vi=i;fi=0;stopAuto();render()}
+function toggleAuto(){
+  if(autoTimer){stopAuto();return}
+  document.getElementById('auto').textContent='暂停 ⏸';
+  autoTimer=setInterval(()=>step(1),3200);
+}
+function stopAuto(){
+  if(autoTimer){clearInterval(autoTimer);autoTimer=null}
+  document.getElementById('auto').textContent='自动播放';
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){step(1)}
+  if(e.key==='ArrowLeft'){step(-1)}
+});
+render();
+</script>
+</body>
+</html>
